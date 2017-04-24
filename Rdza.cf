@@ -1,0 +1,128 @@
+-- programs ------------------------------------------------
+
+entrypoints Program ;
+
+Program.   Program ::= [TopDef] ;
+
+FnDef.	   TopDef ::= "fn" Ident "(" [Arg] ")" ReturnType Block ;
+
+separator nonempty TopDef "" ;
+
+Arg. 	   Arg ::= Ident ":" Type;
+
+ReturnType.     ReturnType ::= "of" Type;
+
+EmptyReturnType.     ReturnType ::= ;
+
+separator  Arg "," ;
+
+-- statements ----------------------------------------------
+
+Block.     Block ::= "{" [Stmt] "}" ;
+
+separator Stmt ";" ;
+
+-- we don't allow multiple declarations
+Decl.      Stmt ::= "let" Ident "=" Expr ;
+
+Ass.       Stmt ::= Ident "=" Expr ;
+
+Ret.       Stmt ::= "return" Expr ;
+
+VRet.      Stmt ::= "return" ;
+
+SExp.      Stmt ::= Expr ;
+
+-- Types ---------------------------------------------------
+
+Int.       Type ::= "int" ;
+
+Str.       Type ::= "string" ;
+
+Char.      Type ::= "char" ;
+
+Bool.      Type ::= "bool" ;
+
+Void.      Type ::= "void" ;
+
+FnType.    Type ::= "fn" "(" [Type] ")" "of" Type ;
+
+List.      Type ::= "[" Type "]" ;
+
+internal   Fun. Type ::= Type "(" [Type] ")" ;
+
+separator  Type "," ;
+
+-- Expressions ---------------------------------------------
+
+EVar.      Expr6 ::= Ident ;
+
+ELitInt.   Expr6 ::= Integer ;
+
+ELitTrue.  Expr6 ::= "true" ;
+
+ELitFalse. Expr6 ::= "false" ;
+
+EApp.      Expr6 ::= Ident "(" [Expr] ")" ;
+
+EString.   Expr6 ::= String ;
+
+Cond.      Expr6 ::= "if" "(" Expr ")" Block  ;
+
+CondElse.  Expr6 ::= "if" "(" Expr ")" Block "else" Block  ; -- how is ambiguity resolved here?
+
+While.     Expr6 ::= "while" "(" Expr ")" Block ;
+
+BStmt.     Expr6 ::= Block ;
+
+Closure.   Expr6 ::= "|" [Arg] "|" Expr;
+
+Neg.       Expr5 ::= "-" Expr6 ;
+
+Not.       Expr5 ::= "!" Expr6 ;
+
+EMul.      Expr4 ::= Expr4 MulOp Expr5 ;
+
+EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
+
+ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
+
+EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
+
+EOr.       Expr ::= Expr1 "||" Expr ;
+
+coercions  Expr 6 ;
+
+separator  Expr "," ;
+
+-- operators -----------------------------------------------
+
+Plus.      AddOp ::= "+" ;
+
+Minus.     AddOp ::= "-" ;
+
+Times.     MulOp ::= "*" ;
+
+Div.       MulOp ::= "/" ;
+
+Mod.       MulOp ::= "%" ;
+
+LTH.       RelOp ::= "<" ;
+
+LE.        RelOp ::= "<=" ;
+
+GTH.       RelOp ::= ">" ;
+
+GE.        RelOp ::= ">=" ;
+
+EQU.       RelOp ::= "==" ;
+
+NE.        RelOp ::= "!=" ;
+
+-- comments ------------------------------------------------
+
+comment    "#" ;
+
+comment    "//" ;
+
+comment    "/*" "*/" ;
