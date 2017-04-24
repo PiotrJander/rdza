@@ -1,6 +1,6 @@
 module Main where
 
-import Lib
+import qualified TestRdza as TR
 
 main :: IO ()
-main = someFunc
+main = TR.main
