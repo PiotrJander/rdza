@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="HaskellBuildOptions">
+    <ghcPath>/usr/local/bin/ghc</ghcPath>
+    <cabalPath>$USER_HOME$/Library/Haskell/bin/cabal</cabalPath>
+    <useStack>true</useStack>
+    <stackPath>/usr/local/bin/stack</stackPath>
+    <stackFile>$PROJECT_DIR$/stack.yaml</stackFile>
+  </component>
+</project>
