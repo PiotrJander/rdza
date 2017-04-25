@@ -1,6 +1,6 @@
 module Main where
 
-import qualified TestRdza as TR
+import qualified ExecRdza as ER
 
 main :: IO ()
-main = TR.main
+main = ER.entry

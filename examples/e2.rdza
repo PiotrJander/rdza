@@ -1,0 +1,11 @@
+// wypisz liczby parzyste do 10
+
+fn main () of void {
+  let i = 0 ;
+  while (i < 10) {
+    if (i % 2 == 0) { printInt(i) } ;
+    i = i + 1 ;
+  };
+  printInt(i) ;
+  return 0
+}

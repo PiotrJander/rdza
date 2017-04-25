@@ -1,0 +1,6 @@
+// Hello world
+
+fn main () {
+  printString("hello world") ;
+  return 0
+}
