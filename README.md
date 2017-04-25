@@ -2,4 +2,6 @@
 
 TODO
 
-why works one way and doesn't work the other?
+diffs between files made via stack and makefile
+probably due to flags
+if can't overcome, run happy and alex manually
