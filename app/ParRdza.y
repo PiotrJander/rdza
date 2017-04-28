@@ -9,6 +9,7 @@ import ErrM
 }
 
 %name pProgram Program
+%name pExpr Expr
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
