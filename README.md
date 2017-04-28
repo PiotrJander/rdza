@@ -17,3 +17,6 @@ TODO
 * expr only need reader but no state
 * statements need state
 * don't worry about nested functions for now; compose Except and State / Reader for now
+
+important:
+* compilation with stack fails due to the lexer!

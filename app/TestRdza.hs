@@ -11,6 +11,7 @@ import ParRdza
 import SkelRdza
 import PrintRdza
 import AbsRdza
+import Interpreter
 
 
 
@@ -35,10 +36,11 @@ run v p s = let ts = myLLexer s in case p ts of
                           putStrV v "Tokens:"
                           putStrV v $ show ts
                           putStrLn s
+                          foo
                           exitFailure
            Ok  tree -> do putStrLn "\nParse Successful!"
                           showTree v tree
-
+                          foo
                           exitSuccess
 
 

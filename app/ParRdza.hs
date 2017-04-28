@@ -921,7 +921,7 @@ happyError ts =
   Bad $ "syntax error at " ++ tokenPos ts ++ 
   case ts of
     [] -> []
-    [Err _] -> " due to lexer error"
+    [Err e] -> " due to lexer error" ++ e
     _ -> " before " ++ unwords (map (id . prToken) (take 4 ts))
 
 myLexer = tokens
