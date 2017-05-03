@@ -24,6 +24,12 @@ unitTests = testGroup "Unit tests"
             exprM = doExpr (EAdd (ELitInt 2) Plus (ELitInt 2))
         in
             evalExpr exprM Map.empty @?= Right 4
+        ,
+        testCase "Lookup variable" $
+        let
+            exprM = doExpr (EVar (Ident "foo"))
+        in
+            evalExpr exprM (Map.fromList [(Ident "foo", 4)]) @?= Right 4
     ]
 
 

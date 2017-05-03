@@ -22,4 +22,5 @@ important:
 * compilation with stack fails due to the lexer!
 
 * no need to handle all types of expressions
-* 
+* but expr can be a block of statements, therefore, it can modify the state
+* now we could impl and test decl and assign, forget scopes for now
