@@ -91,58 +91,32 @@ instance Evaluable Expr where
                     let op = case mulop of {Times -> (*); Div -> div; Mod -> mod}
                     in op v1 v2
                 _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
-        -- EMul expr1 mulop expr2 -> case mulop of
-        --     Times -> (*) <$> evaluate expr1 <*> evaluate expr2
-        --     Div -> div <$> evaluate expr1 <*> evaluate expr2
-        --     Mod -> mod <$> evaluate expr1 <*> evaluate expr2
-        -- EAdd expr1 addop expr2 -> case addop of
-        --     Plus -> (+) <$> evaluate expr1 <*> evaluate expr2
-        --     Minus -> (-) <$> evaluate expr1 <*> evaluate expr2
-        -- EAdd expr1 addop expr2 -> case (expr1, expr2) of
-        --     (Number x, Number y) -> case addop of
-        --         Plus -> (+) <$> evaluate x <*> evaluate y
-        --         Minus -> (-) <$> evaluate x <*> evaluate y
-        --     _ -> throwError "type error; can't add " ++ show expr1 ++ " and " ++ show expr2
-        -- ERel expr1 relop expr2 -> case relop of
-        --     LTH -> (<) <$> evaluate expr1 <*> evaluate expr2
-        --     LE -> (<=) <$> evaluate expr1 <*> evaluate expr2
-        --     GTH -> (>) <$> evaluate expr1 <*> evaluate expr2
-        --     GE -> (>=) <$> evaluate expr1 <*> evaluate expr2
-        --     EQU -> (==) <$> evaluate expr1 <*> evaluate expr2
-        --     NE -> (/=) <$> evaluate expr1 <*> evaluate expr2
-        -- EAnd expr1 expr2 -> (&&) <$> evaluate expr1 <*> evaluate expr2
-        -- EOr expr1 expr2 -> (||) <$> evaluate expr1 <*> evaluate expr2
-
-
--- liftToNumber :: (b -> Value) -> (a -> a -> b) -> Expr -> Expr -> Interpreter Value
--- liftToNumber wrapper bin expr1 expr2 = do
---     r1 <- evaluate expr1
---     r2 <- evaluate expr2
---     case (r1, r2) of
---         (Number v1, Number v2) -> return $ wrapper $ v1 `bin` v2
---         _ -> throwError "type error: " ++ show r1 ++ " and " ++ show r2
-
-
-    --     x <- evaluate expr1
-    --     y <- evaluate expr2
-    --     case (x, y) of
-    --         (Number x, Number y) -> case mulop of
-    --             Times -> (*) <$> evaluate x <*> evaluate y
-    --             Div -> div <$> evaluate x <*> evaluate y
-    --             Mod -> mod <$> evaluate x <*> evaluate y
-    --         _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
-    --
-    --
-    -- case (expr1, expr2) of
-    --     (Number x, Number y) -> case mulop of
-    --         Times -> (*) <$> evaluate x <*> evaluate y
-    --         Div -> div <$> evaluate x <*> evaluate y
-    --         Mod -> mod <$> evaluate x <*> evaluate y
-    --     _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
-    -- --     Not expr -> failure x
-    -- EMul expr1 mulop expr2 -> case (expr1, expr2) of
-    --     (Number x, Number y) -> case mulop of
-    --         Times -> (*) <$> evaluate x <*> evaluate y
-    --         Div -> div <$> evaluate x <*> evaluate y
-    --         Mod -> mod <$> evaluate x <*> evaluate y
-    --     _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
+        EAdd expr1 addop expr2 -> do
+            m1 <- evaluate expr1
+            m2 <- evaluate expr2
+            case (m1, m2) of
+                (Number v1, Number v2) -> return $ Number $
+                    let op = case addop of {Plus -> (*); Minus -> (-)}
+                    in op v1 v2
+                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+        ERel expr1 relop expr2 -> do
+            m1 <- evaluate expr1
+            m2 <- evaluate expr2
+            case (m1, m2) of
+                (Number v1, Number v2) -> return $ Boolean $
+                    let op = case relop of {LTH -> (<); LE -> (<=); GTH -> (>); GE -> (>);
+                                            EQU -> (==); NE -> (/=)}
+                    in op v1 v2
+                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+        EAnd expr1 expr2 -> do
+            m1 <- evaluate expr1
+            m2 <- evaluate expr2
+            case (m1, m2) of
+                (Boolean v1, Boolean v2) -> return $ Boolean $ v1 && v2
+                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+        EOr expr1 expr2 -> do
+            m1 <- evaluate expr1
+            m2 <- evaluate expr2
+            case (m1, m2) of
+                (Boolean v1, Boolean v2) -> return $ Boolean $ v1 || v2
+                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
