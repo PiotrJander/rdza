@@ -44,6 +44,12 @@ test-suite rdza-test
   main-is:             Spec.hs
   build-depends:       base
                      , rdza
+                     , HUnit
+--                     , test-framework
+--                     , test-framework-hunit
+                     , tasty
+                     , tasty-hunit
+                     , containers
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
