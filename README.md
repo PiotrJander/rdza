@@ -20,3 +20,6 @@ TODO
 
 important:
 * compilation with stack fails due to the lexer!
+
+* no need to handle all types of expressions
+* 
