@@ -5,6 +5,7 @@ module Interpreter where
 
 import qualified Data.Map as Map
 -- import Data.Maybe
+import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import Control.Monad.Reader
@@ -15,7 +16,16 @@ import Control.Monad.Identity
 import AbsRdza
 
 
-type Env = Map.Map Ident Integer
+type Env = Map.Map Ident Value
+
+data Value =
+      Number Integer
+    -- | Str String
+    -- | Character Char
+    | Boolean Bool
+    | Void'
+    -- | Function []  -- TODO think what Haskell type corrs to function
+    deriving (Eq, Show, Functor, Applicative)
 
 newtype Interpreter a = Interpreter {
   runInterpreter' :: ExceptT String (StateT Env Identity) a
@@ -24,14 +34,14 @@ newtype Interpreter a = Interpreter {
 runInterpreter :: Interpreter a -> Env -> Either String a
 runInterpreter = evalState . runExceptT . runInterpreter'
 
-class Evaluable a where
-    evaluate :: a -> Interpreter Integer
+class Evaluable b where
+    evaluate :: b -> Interpreter Value
 
 instance Evaluable Block where
     evaluate (Block stmts) = evaluate stmts
 
 instance Evaluable [Stmt] where
-    evaluate [] = return 0
+    evaluate [] = return Void'
     evaluate [stmt] = evaluate stmt
     evaluate (stmt:stmts) = do
         evaluate stmt
@@ -42,35 +52,28 @@ instance Evaluable Stmt where
         Decl ident expr -> do
             value <- evaluate expr
             modify $ Map.insert ident value
-            return 0
+            return Void'
         Ass ident expr -> do
             pred <- gets $ Map.member ident
             unless pred $ throwError $ "undeclared identifier " ++ show ident
             value <- evaluate expr
             modify $ Map.insert ident value
-            return 0
-        -- TODO effect of return is to stop function execution
+            return Void'
         Ret expr -> evaluate expr
-        VRet -> return 0
-        SExp expr -> return 0
-        --     Abs.Decl ident expr -> return ()
-        --     Abs.Ass ident expr -> return ()
-        --     Abs.Ret expr -> return ()
-        --     Abs.VRet -> return ()
-        --     Abs.SExp expr -> return ()
-
+        VRet -> return Void'
+        SExp expr -> evaluate expr
 
 instance Evaluable Expr where
     evaluate expr = case expr of
         EVar ident -> do
             result <- gets $ Map.lookup ident
-            -- TODO why not maybe?
-            case result of
-                Nothing -> throwError "Unbound variable "
-                Just v -> return v
-        ELitInt integer -> return integer
-        --     ELitTrue -> failure x
-        --     ELitFalse -> failure x
+            maybe (throwError $ "Unbound variable " ++ show ident) return result
+            -- case result of
+            --     Nothing -> throwError "Unbound variable "
+            --     Just v -> return v
+        ELitInt integer -> return $ Number integer
+        ELitTrue -> return $ Boolean True
+        ELitFalse -> return $ Boolean False
         --     EApp ident exprs -> failure x
         --     EString string -> failure x
         --     Cond expr block -> failure x
@@ -78,15 +81,21 @@ instance Evaluable Expr where
         --     While expr block -> failure x
         --     BStmt block -> failure x
         --     Closure args expr -> failure x
-        Neg expr -> negate <$> evaluate expr
+        -- Neg expr -> negate <$> evaluate expr
         --     Not expr -> failure x
         EMul expr1 mulop expr2 -> case mulop of
-            Times -> (*) <$> evaluate expr1 <*> evaluate expr2
-            Div -> div <$> evaluate expr1 <*> evaluate expr2
-            Mod -> mod <$> evaluate expr1 <*> evaluate expr2
+            Times -> liftA2 (*) <$> evaluate expr1 <*> evaluate expr2
+            Div -> liftA2 div <$> evaluate expr1 <*> evaluate expr2
+            Mod -> liftA2 mod <$> evaluate expr1 <*> evaluate expr2
         EAdd expr1 addop expr2 -> case addop of
-            Plus -> (+) <$> evaluate expr1 <*> evaluate expr2
-            Minus -> (-) <$> evaluate expr1 <*> evaluate expr2
-        --     ERel expr1 relop expr2 -> failure x
-        --     EAnd expr1 expr2 -> failure x
-        --     EOr expr1 expr2 -> failure x
+            Plus -> liftA2 (+) <$> evaluate expr1 <*> evaluate expr2
+            Minus -> liftA2 (-) <$> evaluate expr1 <*> evaluate expr2
+        ERel expr1 relop expr2 -> case relop of
+            LTH -> liftA2 (<) <$> evaluate expr1 <*> evaluate expr2
+            LE -> liftA2 (<=) <$> evaluate expr1 <*> evaluate expr2
+            GTH -> liftA2 (>) <$> evaluate expr1 <*> evaluate expr2
+            GE -> liftA2 (>=) <$> evaluate expr1 <*> evaluate expr2
+            EQU -> liftA2 (==) <$> evaluate expr1 <*> evaluate expr2
+            NE -> liftA2 (/=) <$> evaluate expr1 <*> evaluate expr2
+        EAnd expr1 expr2 -> (&&) <$> evaluate expr1 <*> evaluate expr2
+        EOr expr1 expr2 -> (||) <$> evaluate expr1 <*> evaluate expr2
