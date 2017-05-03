@@ -2,25 +2,23 @@
 
 TODO
 
-* to start with, we just have one function main
-* and one type int
-* we need to have a nice monad with:
-    * function args are like env in reader
-    * runtime errors are reported to error monad (either)
-    * statements like states
-    * monad stack are easily extensible! start with state and exception
-* to start with, main function with no args
-* my guess would be that we'll have a chain of frames with env, corr. to function frames
-* but store local vars in state perhaps
-* remember we have expressions and statements
-* let me interpret both expr and statements
-* expr only need reader but no state
-* statements need state
-* don't worry about nested functions for now; compose Except and State / Reader for now
-
 important:
 * compilation with stack fails due to the lexer!
 
-* no need to handle all types of expressions
-* but expr can be a block of statements, therefore, it can modify the state
-* now we could impl and test decl and assign, forget scopes for now
+* now I started relops, but for that I need the boolean data type
+* or maybe I don't need booleans just yet
+* maybe function args as reader
+
+* type parameter to the Interpreter monad specifies what Haskell type we get in the end
+* we can't rely on deriving Ord; need to lift the operation explicitly
+
+* why do we need the wrapper for values?
+* suppose the program is invalid
+
+eg ```EAdd (ELitInt 2) Plus ELitTrue```
+
+then we evaluate to 2 + True
+
+which is a Haskell type error
+
+no need to rely on user input; the program itself may not typecheck in Haskell

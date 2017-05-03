@@ -45,6 +45,11 @@ unitTests = testGroup "Unit tests"
                 Ass (Ident "x") $ EAdd (EVar (Ident "x")) Plus (ELitInt 1),
                 Ret $ EVar $ Ident "x"]
         in runInterpreter snippet Map.empty @?= Right 3
+        ,
+        testCase "This should break" $
+        let
+            snippet = evaluate $ EAdd ELitTrue Plus ELitFalse
+        in runInterpreter snippet Map.empty @?= Right 3
     ]
 
 
