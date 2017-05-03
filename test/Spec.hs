@@ -21,15 +21,30 @@ unitTests = testGroup "Unit tests"
     [
         testCase "Evaluate addition expression" $
         let
-            exprM = doExpr (EAdd (ELitInt 2) Plus (ELitInt 2))
-        in
-            evalExpr exprM Map.empty @?= Right 4
+            snippet = evaluate (EAdd (ELitInt 2) Plus (ELitInt 2))
+        in runInterpreter snippet Map.empty @?= Right 4
         ,
         testCase "Lookup variable" $
         let
-            exprM = doExpr (EVar (Ident "foo"))
-        in
-            evalExpr exprM (Map.fromList [(Ident "foo", 4)]) @?= Right 4
+            snippet = evaluate (EVar (Ident "foo"))
+        in runInterpreter snippet (Map.fromList [(Ident "foo", 4)]) @?= Right 4
+        ,
+        testCase "Variable declaration" $
+        let
+            snippet = evaluate [
+                Decl (Ident "x") $ ELitInt 2
+                -- , Ass $ Ident "x" $ EAdd (EVar (Ident "x")) Plus (ELitInt 1)
+                , Ret $ EVar $ Ident "x"
+                ]
+        in runInterpreter snippet Map.empty @?= Right 2
+        ,
+        testCase "Variable declaration and assignment" $
+        let
+            snippet = evaluate [
+                Decl (Ident "x") $ ELitInt 2,
+                Ass (Ident "x") $ EAdd (EVar (Ident "x")) Plus (ELitInt 1),
+                Ret $ EVar $ Ident "x"]
+        in runInterpreter snippet Map.empty @?= Right 3
     ]
 
 
