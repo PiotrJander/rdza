@@ -19,37 +19,47 @@ tests = testGroup "Tests" [unitTests]
 
 unitTests = testGroup "Unit tests"
     [
-        testCase "Evaluate addition expression" $
+        -- testCase "Evaluate addition expression" $
+        -- let
+        --     snippet = evaluate (EAdd (ELitInt 2) Plus (ELitInt 2))
+        -- in runInterpreter snippet Map.empty @?= Right 4
+        -- ,
+        testCase "Evaluate mult expression" $
         let
-            snippet = evaluate (EAdd (ELitInt 2) Plus (ELitInt 2))
-        in runInterpreter snippet Map.empty @?= Right 4
+            snippet = evaluate (EMul (ELitInt 2) Times (ELitInt 2))
+        in runInterpreter snippet Map.empty @?= Right (Number 4)
         ,
-        testCase "Lookup variable" $
+        testCase "Throw error in mult expression" $
         let
-            snippet = evaluate (EVar (Ident "foo"))
-        in runInterpreter snippet (Map.fromList [(Ident "foo", 4)]) @?= Right 4
-        ,
-        testCase "Variable declaration" $
-        let
-            snippet = evaluate [
-                Decl (Ident "x") $ ELitInt 2
-                -- , Ass $ Ident "x" $ EAdd (EVar (Ident "x")) Plus (ELitInt 1)
-                , Ret $ EVar $ Ident "x"
-                ]
-        in runInterpreter snippet Map.empty @?= Right 2
-        ,
-        testCase "Variable declaration and assignment" $
-        let
-            snippet = evaluate [
-                Decl (Ident "x") $ ELitInt 2,
-                Ass (Ident "x") $ EAdd (EVar (Ident "x")) Plus (ELitInt 1),
-                Ret $ EVar $ Ident "x"]
-        in runInterpreter snippet Map.empty @?= Right 3
-        ,
-        testCase "This should break" $
-        let
-            snippet = evaluate $ EAdd ELitTrue Plus ELitFalse
-        in runInterpreter snippet Map.empty @?= Right 3
+            snippet = evaluate (EMul (ELitInt 2) Times ELitTrue)
+        in runInterpreter snippet Map.empty @?= Left "type error: Number 2 and Boolean True"
+        -- ,
+        -- testCase "Lookup variable" $
+        -- let
+        --     snippet = evaluate (EVar (Ident "foo"))
+        -- in runInterpreter snippet (Map.fromList [(Ident "foo", 4)]) @?= Right 4
+        -- ,
+        -- testCase "Variable declaration" $
+        -- let
+        --     snippet = evaluate [
+        --         Decl (Ident "x") $ ELitInt 2
+        --         -- , Ass $ Ident "x" $ EAdd (EVar (Ident "x")) Plus (ELitInt 1)
+        --         , Ret $ EVar $ Ident "x"
+        --         ]
+        -- in runInterpreter snippet Map.empty @?= Right 2
+        -- ,
+        -- testCase "Variable declaration and assignment" $
+        -- let
+        --     snippet = evaluate [
+        --         Decl (Ident "x") $ ELitInt 2,
+        --         Ass (Ident "x") $ EAdd (EVar (Ident "x")) Plus (ELitInt 1),
+        --         Ret $ EVar $ Ident "x"]
+        -- in runInterpreter snippet Map.empty @?= Right 3
+        -- ,
+        -- testCase "This should break" $
+        -- let
+        --     snippet = evaluate $ EAdd ELitTrue Plus ELitFalse
+        -- in runInterpreter snippet Map.empty @?= Right 3
     ]
 
 

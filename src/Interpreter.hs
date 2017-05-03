@@ -90,7 +90,7 @@ instance Evaluable Expr where
                 (Number v1, Number v2) -> return $ Number $
                     let op = case mulop of {Times -> (*); Div -> div; Mod -> mod}
                     in op v1 v2
-                _ -> throwError "type error: " ++ show m1 ++ " and " ++ show m2
+                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
         -- EMul expr1 mulop expr2 -> case mulop of
         --     Times -> (*) <$> evaluate expr1 <*> evaluate expr2
         --     Div -> div <$> evaluate expr1 <*> evaluate expr2
@@ -123,26 +123,26 @@ instance Evaluable Expr where
 --         _ -> throwError "type error: " ++ show r1 ++ " and " ++ show r2
 
 
-        x <- evaluate expr1
-        y <- evaluate expr2
-        case (x, y) of
-            (Number x, Number y) -> case mulop of
-                Times -> (*) <$> evaluate x <*> evaluate y
-                Div -> div <$> evaluate x <*> evaluate y
-                Mod -> mod <$> evaluate x <*> evaluate y
-            _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
-
-
-    case (expr1, expr2) of
-        (Number x, Number y) -> case mulop of
-            Times -> (*) <$> evaluate x <*> evaluate y
-            Div -> div <$> evaluate x <*> evaluate y
-            Mod -> mod <$> evaluate x <*> evaluate y
-        _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
-    --     Not expr -> failure x
-    EMul expr1 mulop expr2 -> case (expr1, expr2) of
-        (Number x, Number y) -> case mulop of
-            Times -> (*) <$> evaluate x <*> evaluate y
-            Div -> div <$> evaluate x <*> evaluate y
-            Mod -> mod <$> evaluate x <*> evaluate y
-        _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
+    --     x <- evaluate expr1
+    --     y <- evaluate expr2
+    --     case (x, y) of
+    --         (Number x, Number y) -> case mulop of
+    --             Times -> (*) <$> evaluate x <*> evaluate y
+    --             Div -> div <$> evaluate x <*> evaluate y
+    --             Mod -> mod <$> evaluate x <*> evaluate y
+    --         _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
+    --
+    --
+    -- case (expr1, expr2) of
+    --     (Number x, Number y) -> case mulop of
+    --         Times -> (*) <$> evaluate x <*> evaluate y
+    --         Div -> div <$> evaluate x <*> evaluate y
+    --         Mod -> mod <$> evaluate x <*> evaluate y
+    --     _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
+    -- --     Not expr -> failure x
+    -- EMul expr1 mulop expr2 -> case (expr1, expr2) of
+    --     (Number x, Number y) -> case mulop of
+    --         Times -> (*) <$> evaluate x <*> evaluate y
+    --         Div -> div <$> evaluate x <*> evaluate y
+    --         Mod -> mod <$> evaluate x <*> evaluate y
+    --     _ -> throwError "type error; can't mult " ++ show expr1 ++ " and " ++ show expr2
