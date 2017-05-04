@@ -1,24 +1,23 @@
 # rdza
 
-TODO
-
 important:
 * compilation with stack fails due to the lexer!
 
-* now I started relops, but for that I need the boolean data type
-* or maybe I don't need booleans just yet
+* but the distinction makes sense because we don't want decls and ass in exprs
+* but same applies to while-loops, so we do want to move them to stmts
+
+ideas:
 * maybe function args as reader
+* when type checking if without else, require void type
+* reorganize tests, give it structure, then run with patterns
 
-* type parameter to the Interpreter monad specifies what Haskell type we get in the end
-* we can't rely on deriving Ord; need to lift the operation explicitly
+now:
+* ok static type checking
+* program is an ast
+* each expression is depends in some way on the type on its args
+* we start at leaves, and fold the ast with most general type
+* interpreter: do type check monad, then do interpreter monad
 
-* why do we need the wrapper for values?
-* suppose the program is invalid
-
-eg ```EAdd (ELitInt 2) Plus ELitTrue```
-
-then we evaluate to 2 + True
-
-which is a Haskell type error
-
-no need to rely on user input; the program itself may not typecheck in Haskell
+* then try parsing and interpreting a program
+* then do basic static type checking
+* then finish for today
