@@ -5,7 +5,7 @@ important:
 
 ask instructor:
 1) how about immutable data types? then no distinction between passing
-    by reference and value
+    by reference and value; how does this affect closures?
 2) how are immutable dictionaries and maps implemented?
 
 fix syntax:
@@ -14,11 +14,53 @@ fix syntax:
 * same goes for if without else
 * don't require semicolon after blocks
 
+well know algorithms:
+* type reconstruction
+* identifier scopes and shadowing
+
 plan for today:
 * implement functions, then go to sleep
 
-ideas:
+functions:
+* function is a data type which can be applied to arguments
+* application is valid when parameter and arguments types match
+* need good function types
+* function args as reader monad: spawning reader envs can nicely
+    emulate the tree of function calls
+* as for scopes, maybe we can just save and restore env?
+    this is more like stack pointer and function frames
+    note that in C identifier are translated by the compiler to addresses
+* alternatively: no reader monad, add args to state env
+* and impl return!
+* in fact when we call a function, we don't inherit the parent scope
+* each function inherits the scope it was defined in
+    but no global variables are allowed (probably)
+    so for global functions, the scope contains top level functions
+    for nested functions and anonymous functions, local scope
 
+blocks:
+* blocks can only interact with outer scope by changing variables
+    in that scope
+* local variables are discarded
+* but that means we can't just save and restore the scope state
+* here block scoping introduce a bit of complication, as we need
+    to give up the flat env structure and link scopes
+* python way would be easier
+* but I can be ambitious and do it the Rust way
+* still no mutability, just overriding names
+* can't do that with functions, as semantics is pass by value
+
+closures:
+* closure inside parent can modify parent's variables just like a block
+* so save and restore state not applicable
+* but the magic about closures is that it can be returned from its
+    parent but still has access to parent's scope
+    of course then parents scope becomes a sort of PERSISTET scope
+    i.e. changes to variables persist across calls to the closure function
+    at least that's the case with JS
+    TODO read about closures in JS
+
+ideas:
 * by convention, we start with the main function
 * function is an data type which can be executed
 * top level function belong to global scope
