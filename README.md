@@ -3,8 +3,11 @@
 important:
 * compilation with stack fails due to the lexer!
 
+fix syntax:
 * but the distinction makes sense because we don't want decls and ass in exprs
 * but same applies to while-loops, so we do want to move them to stmts
+* same goes for if without else
+* don't require semicolon after blocks
 
 ideas:
 * maybe function args as reader

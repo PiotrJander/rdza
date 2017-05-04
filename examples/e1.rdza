@@ -1,6 +1,7 @@
 // Hello world
 
 fn main () {
-  printString("hello world") ;
-  return 0
+  // printString("hello world") ;
+  let p = false;
+  return if (p) { 1 } else { 2 }
 }

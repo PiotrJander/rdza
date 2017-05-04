@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE FlexibleInstances #-}
+-- {-# LANGUAGE FlexibleInstances #-}
 
 module Interpreter where
 
@@ -39,8 +39,11 @@ newtype TypeChecker a = TypeChecker {
 runInterpreter :: Interpreter a -> Env -> Either String a
 runInterpreter = evalState . runExceptT . runInterpreter'
 
-runTypeChecker :: TypeChecker a -> TypeEnv -> Either String a
-runTypeChecker = evalState . runExceptT . runTypeChecker'
+evalTypeChecker :: TypeChecker a -> TypeEnv -> Either String a
+evalTypeChecker = evalState . runExceptT . runTypeChecker'
+
+execTypeChecker :: TypeChecker a -> TypeEnv -> TypeEnv
+execTypeChecker = execState . runExceptT . runTypeChecker'
 
 runProgram :: (ProgramNode a) => a -> IO ()
 runProgram node = case runInterpreter (evaluate node) Map.empty of
@@ -95,7 +98,7 @@ instance ProgramNode Stmt where
         SExp expr -> evaluate expr
 
     -- | Typechecking
-    evaluate stmt = case stmt of
+    typecheck stmt = case stmt of
         Decl ident expr -> do
             -- TODO deal with maybe
             t <- typecheck expr
@@ -104,7 +107,7 @@ instance ProgramNode Stmt where
         Ass ident expr -> do
             oldt <- gets $ Map.lookup ident
             newt <- typecheck expr
-            if oldt == newt
+            if oldt == Just newt
                 then return Void
                 else throwError "type error: assignment"
         Ret expr -> typecheck expr  -- TODO agree with function return type
@@ -250,4 +253,4 @@ binaryTypecheck e1 e2 tin tout name = do
 conditionTypecheck :: Expr -> String -> TypeChecker ()
 conditionTypecheck expr name = do
     p <- typecheck expr
-    unless p == Bool $ throwError $ "typeError: condition in " ++ name
+    unless (p == Bool) $ throwError $ "typeError: condition in " ++ name

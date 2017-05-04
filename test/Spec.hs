@@ -14,10 +14,48 @@ import qualified Data.Map as Map
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Tests" [unitTests]
--- tests = testGroup "Tests" [properties, unitTests]
+-- tests = testGroup "Tests" [evaluateTests, typecheckTests]
+tests = testGroup "Tests" [typecheckTests]
 
-unitTests = testGroup "Unit tests"
+typecheckTests = testGroup "Typecheck tests"
+    [
+        testCase "If / while condition success" $
+        let
+            snippet = conditionTypecheck (ERel (ELitInt 2) EQU (ELitInt 3)) "if"
+        in evalTypeChecker snippet Map.empty @?= Right ()
+        ,
+        testCase "If / while condition failure" $
+        let
+            snippet = conditionTypecheck (ELitInt 6) "if"
+        in evalTypeChecker snippet Map.empty @?= Left "typeError: condition in if"
+        ,
+        testCase "Variables in if block get typechecked" $
+        let
+            snippet = typecheck $ Cond ELitTrue $ Block [
+                Decl (Ident "x") (ELitInt 6)
+                ]
+        in execTypeChecker snippet Map.empty @?= Map.fromList [(Ident "x", Int)]
+        ,
+        testCase "Variables in if block get typechecked with failure" $
+        let
+            snippet = typecheck $ Cond ELitTrue $ Block [
+                Ass (Ident "x") (ELitInt 6)
+                ]
+            result = evalTypeChecker snippet $ Map.fromList [(Ident "x", Bool)]
+        in result @?= Left "type error: assignment"
+        ,
+        testCase "Binary typecheck success" $
+        let
+            snippet = typecheck $ EAnd ELitTrue ELitFalse
+        in evalTypeChecker snippet Map.empty @?= Right Bool
+        ,
+        testCase "Binary typecheck error" $
+        let
+            snippet = typecheck $ EAnd ELitTrue (ELitInt 5)
+        in evalTypeChecker snippet Map.empty @?= Left "type error: EAnd"
+    ]
+
+evaluateTests = testGroup "Evaluate tests"
     [
         testCase "Evaluate addition expression" $
         let
@@ -41,7 +79,7 @@ unitTests = testGroup "Unit tests"
         ,
         testCase "Variable declaration" $
         let
-            snippet = evaluate [
+            snippet = evaluate $ Block [
                 Decl (Ident "x") $ ELitInt 2
                 , Ret $ EVar $ Ident "x"
                 ]
@@ -49,7 +87,7 @@ unitTests = testGroup "Unit tests"
         ,
         testCase "Variable declaration and assignment" $
         let
-            snippet = evaluate [
+            snippet = evaluate $ Block [
                 Decl (Ident "x") $ ELitInt 2,
                 Ass (Ident "x") $ EAdd (EVar (Ident "x")) Plus (ELitInt 1),
                 Ret $ EVar $ Ident "x"]
@@ -66,7 +104,7 @@ unitTests = testGroup "Unit tests"
             var = EVar x
             one = ELitInt 1
             two = ELitInt 2
-            snippet = evaluate [
+            snippet = evaluate $ Block [
                 Decl x two  -- x := 2
                 , SExp $ Cond (ERel var EQU two) (Block [
                     -- this conditional should be taken
@@ -89,7 +127,7 @@ unitTests = testGroup "Unit tests"
             one = ELitInt 1
             two = ELitInt 2
             three = ELitInt 3
-            snippet = evaluate [
+            snippet = evaluate $ Block [
                 Decl x two  -- x := 2
                 , Decl y one  -- y := 1
                 , SExp $ CondElse (ERel varx EQU two) (Block [
@@ -111,7 +149,7 @@ unitTests = testGroup "Unit tests"
             zero = ELitInt 0
             one = ELitInt 1
             ten = ELitInt 10
-            snippet = evaluate [
+            snippet = evaluate $ Block [
                 Decl x zero  -- x := 1
                 , SExp $ While (ERel varx LTH ten) (Block [
                     -- this block should be repeated ten times
