@@ -34,6 +34,11 @@ newtype Interpreter a = Interpreter {
 runInterpreter :: Interpreter a -> Env -> Either String a
 runInterpreter = evalState . runExceptT . runInterpreter'
 
+runProgram :: (ProgramNode a) => a -> IO ()
+runProgram node = case runInterpreter (evaluate node) Map.empty of
+                Left err -> print err
+                Right value -> print value
+
 class ProgramNode b where
     evaluate :: b -> Interpreter Value
 
