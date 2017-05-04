@@ -54,21 +54,28 @@ class ProgramNode b where
 instance ProgramNode Program where
     -- | For now, only evaluates the first function.
     -- | FIXME
-    evaluate (Program (td:topdefs)) = evaluate td
+    evaluate (Program (td:_)) = evaluate td
+    typecheck (Program (td:_)) = typecheck td
 
 instance ProgramNode TopDef where
     -- | FIMXME consider args etc
     evaluate (FnDef ident args ret block) = evaluate block
+    typecheck (FnDef ident args ret block) = typecheck block
 
 instance ProgramNode Block where
-    evaluate (Block stmts) = evaluate stmts
-
-instance ProgramNode [Stmt] where
-    evaluate [] = return Void'
-    evaluate [stmt] = evaluate stmt
-    evaluate (stmt:stmts) = do
+    -- | Evaluation
+    evaluate (Block []) = return Void'
+    evaluate (Block [stmt]) = evaluate stmt
+    evaluate (Block (stmt:stmts)) = do
         evaluate stmt
-        evaluate stmts
+        evaluate $ Block stmts
+
+    -- | Type checking
+    typecheck (Block []) = return Void
+    typecheck (Block [stmt]) = typecheck stmt
+    typecheck (Block (stmt:stmts)) = do
+        typecheck stmt
+        typecheck $ Block stmts
 
 instance ProgramNode Stmt where
     -- | Evaluation
@@ -90,6 +97,7 @@ instance ProgramNode Stmt where
     -- | Typechecking
     evaluate stmt = case stmt of
         Decl ident expr -> do
+            -- TODO deal with maybe
             t <- typecheck expr
             modify $ Map.insert ident t
             return Void
