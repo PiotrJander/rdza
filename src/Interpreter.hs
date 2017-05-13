@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
--- {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Interpreter where
 
@@ -25,8 +25,11 @@ data Value =
     -- | Character Char
     | Boolean Bool
     | Void'
-    -- | Function []  -- TODO think what Haskell type corrs to function
+    | Function Callable
     deriving (Eq, Show)
+
+-- data Callable = Callable { args :: [Arg], returnType :: ReturnType, block :: Block }
+data Callable = Callable Ident [Arg] ReturnType Block
 
 newtype Interpreter a = Interpreter {
   runInterpreter' :: ExceptT String (StateT Env Identity) a
@@ -55,30 +58,52 @@ class ProgramNode b where
     typecheck :: b -> TypeChecker Type
 
 instance ProgramNode Program where
-    -- | For now, only evaluates the first function.
-    -- | FIXME
-    evaluate (Program (td:_)) = evaluate td
-    typecheck (Program (td:_)) = typecheck td
+    evaluate (Program tds) = evaluate tds
+    typecheck (Program tds) = typecheck tds
+
+instance ProgramNode [TopDef] where
+    evaluate [] = return Void'
+    evaluate (td:tds) = do
+        evaluate td
+        evaluate tds
+
+    typecheck [] = return Void
+    typecheck (td:tds) = do
+        typecheck td
+        typecheck tds
 
 instance ProgramNode TopDef where
-    -- | FIMXME consider args etc
-    evaluate (FnDef ident args ret block) = evaluate block
-    typecheck (FnDef ident args ret block) = typecheck block
+    evaluate (FnDef ident@(Ident name) args ret block) = 
+        modify $ Map.insert ident $ Callable ident args ret block
+
+        -- if the function is main, execute the program by applying main to ()
+        when (name == "main") $ evaluate $ EApp ident []
+
+    typecheck (FnDef ident@(Ident name) args ret block) = do
+        -- add function parameters to the type env
+        forM args $ \(Arg ident type_) -> modify $ Map.insert ident type_
+
+        actualType <- typecheck block
+        if ret == actualType
+            then return $ FnDef args ret
+            else throwError $ "type error: function " ++ name ++ " was declared to "
+                                ++ "have return type " ++ ret ++ " but the actual "
+                                ++ "return type is " ++ actualType
 
 instance ProgramNode Block where
-    -- | Evaluation
-    evaluate (Block []) = return Void'
-    evaluate (Block [stmt]) = evaluate stmt
-    evaluate (Block (stmt:stmts)) = do
-        evaluate stmt
-        evaluate $ Block stmts
+    evaluate (Block stmts) = evaluate stmts
+    typecheck (Block stmts) = typecheck stmts
 
-    -- | Type checking
-    typecheck (Block []) = return Void
-    typecheck (Block [stmt]) = typecheck stmt
-    typecheck (Block (stmt:stmts)) = do
+instance ProgramNode [Stmt] where
+    evaluate [] = return Void'
+    evaluate (stmt:stmts) = do
+        evaluate stmt
+        evaluate stmts
+
+    typecheck [] = return Void'
+    typecheck (stmt:stmts) = do
         typecheck stmt
-        typecheck $ Block stmts
+        typecheck stmts
 
 instance ProgramNode Stmt where
     -- | Evaluation
@@ -123,7 +148,13 @@ instance ProgramNode Expr where
         ELitInt integer -> return $ Number integer
         ELitTrue -> return $ Boolean True
         ELitFalse -> return $ Boolean False
-        -- EApp ident exprs -> failure x
+        EApp ident@(Ident name) exprs -> do
+            callable <- gets $ Map.lookup ident
+            case callable of
+                Nothing -> throwError $ "function " ++ name ++ " not in scope"
+                Callable _ params _ block -> do
+                    forM (zip params exprs) $ \(param, expr) -> modify $ Map.insert param expr
+                    evaluate block 
         -- EString string -> return $ String' $ string
         Cond expr block -> do
             cond <- evaluate expr

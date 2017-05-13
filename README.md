@@ -21,6 +21,21 @@ well know algorithms:
 plan for today:
 * implement functions, then go to sleep
 
+
+
+simple:
+* now impl function application and typechecking
+* first typechecking
+* simple
+* 
+
+
+
+
+
+
+
+
 functions:
 * function is a data type which can be applied to arguments
 * application is valid when parameter and arguments types match

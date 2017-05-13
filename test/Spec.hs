@@ -53,6 +53,13 @@ typecheckTests = testGroup "Typecheck tests"
         let
             snippet = typecheck $ EAnd ELitTrue (ELitInt 5)
         in evalTypeChecker snippet Map.empty @?= Left "type error: EAnd"
+        ,
+        testCase "Top level function main" $
+        let
+            snippet = typecheck $ Program [main]
+            main = FnDef (Ident "main") [] (ReturnType Void) block
+            block = Block []
+        in evalTypeChecker snippet Map.empty @?= Right Void
     ]
 
 evaluateTests = testGroup "Evaluate tests"
