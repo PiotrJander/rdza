@@ -186,18 +186,30 @@ instance ProgramNode Expr where
         ELitTrue -> return $ Boolean True
         ELitFalse -> return $ Boolean False
         EApp ident@(Ident name) exprs -> do
-            callable <- gets $ Map.lookup ident
-            case callable of
-                Nothing -> throwStringError $ "function " ++ name ++ " not in scope"
-                Just (Callable _ params _ block) -> do
-                    forM (zip params exprs) $ \((Arg ident _), expr) -> do
-                        value <- evaluate expr
-                        modify $ Map.insert ident value
-                    let catcher e = case e of
-                                    ReturnException v -> return v
-                                    ErrorException s -> throwStringError s
-                    evaluate block `catchError` catcher
-                Just _ -> throwStringError $ "ident " ++ name ++ " is not a function"
+            if name == "str"
+                then do -- built-in converter to strings
+                        if length exprs == 1
+                            then do
+                                v <- evaluate $ head exprs
+                                case v of
+                                    Number n -> return $ Text $ show n
+                                    Boolean b -> return $ Text $ show b
+                                    Text t -> return $ Text t
+                                    _ -> throwStringError $ show v ++ " can't be converted to string"
+                            else throwStringError "function str applied to wrong number of args"
+                else do
+                    callable <- gets $ Map.lookup ident
+                    case callable of
+                        Nothing -> throwStringError $ "function " ++ name ++ " not in scope"
+                        Just (Callable _ params _ block) -> do
+                            forM (zip params exprs) $ \((Arg ident _), expr) -> do
+                                value <- evaluate expr
+                                modify $ Map.insert ident value
+                            let catcher e = case e of
+                                            ReturnException v -> return v
+                                            ErrorException s -> throwStringError s
+                            evaluate block `catchError` catcher
+                        Just _ -> throwStringError $ "ident " ++ name ++ " is not a function"
         EString string -> return $ Text $ string
         Cond expr block -> do
             cond <- evaluate expr
@@ -241,9 +253,9 @@ instance ProgramNode Expr where
             m1 <- evaluate expr1
             m2 <- evaluate expr2
             case (m1, m2) of
-                (Number v1, Number v2) -> return $ Number $
+                (Number v1, Number v2) -> 
                     let op = case mulop of {Times -> (*); Div -> div; Mod -> mod}
-                    in if mulop == Div && m2 == 0 then throwStringError "division by zero" else op v1 v2
+                    in if mulop == Div && v2 == (toInteger 0) then throwStringError "division by zero" else return $ Number $ op v1 v2
                 _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
         EAdd expr1 addop expr2 -> do
             m1 <- evaluate expr1
@@ -288,7 +300,13 @@ instance ProgramNode Expr where
         EApp ident@(Ident name) exprs -> do
             if name == "str"
                 then do -- built-in converter to strings
-                        
+                        if length exprs == 1
+                            then do
+                                v <- typecheck $ head exprs
+                                if v `elem` [Str, Int, Bool]
+                                    then return Str
+                                    else throwError $ show v ++ " can't be converted to string"
+                            else throwError "function str applied to wrong number of args"
                 else do
                         fntype <- gets $ Map.lookup ident
                         case fntype of
