@@ -15,7 +15,6 @@ import Control.Monad.Identity
 -- import qualified AbsRdza as Abs
 import AbsRdza
 
-
 type Env = Map.Map Ident Value
 type TypeEnv = Map.Map Ident Type
 
