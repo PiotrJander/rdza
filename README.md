@@ -18,12 +18,11 @@ well know algorithms:
 * type reconstruction
 * identifier scopes and shadowing
 
-plan for today:
-* implement functions, then go to sleep
 
 
 
 simple:
+* what about type reconstruction???
 * now impl function application and typechecking
 * first typechecking
 * simple
@@ -33,6 +32,13 @@ simple:
 
 * function application
 * too many / few args
+
+
+
+
+* ok now test topdef evaluation and recursion
+* 
+
 
 
 

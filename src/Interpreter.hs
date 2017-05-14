@@ -59,11 +59,13 @@ instance ProgramNode Program where
 
 instance ProgramNode [TopDef] where
     evaluate [] = return Void'
+    evaluate [td] = evaluate td
     evaluate (td:tds) = do
         evaluate td
         evaluate tds
 
     typecheck [] = return Void
+    typecheck [td] = typecheck td
     typecheck (td:tds) = do
         typecheck td
         typecheck tds

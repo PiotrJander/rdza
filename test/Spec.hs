@@ -14,8 +14,8 @@ import qualified Data.Map as Map
 main = defaultMain tests
 
 tests :: TestTree
--- tests = testGroup "Tests" [evaluateTests, typecheckTests]
-tests = testGroup "Tests" [typecheckTests]
+tests = testGroup "Tests" [evaluateTests, typecheckTests]
+-- tests = testGroup "Tests" [typecheckTests]
 
 typecheckTests = testGroup "Typecheck tests"
     [
@@ -59,14 +59,14 @@ typecheckTests = testGroup "Typecheck tests"
             snippet = typecheck $ Program [main]
             main = FnDef (Ident "main") [] (ReturnType Void) block
             block = Block []
-        in evalTypeChecker snippet Map.empty @?= Right Void
+        in evalTypeChecker snippet Map.empty @?= Right (FnType [] Void)
         ,
         testCase "Valid top level function main with EmptyReturnType" $
         let
             snippet = typecheck $ Program [main]
             main = FnDef (Ident "main") [] EmptyReturnType block
             block = Block []
-        in evalTypeChecker snippet Map.empty @?= Right Void
+        in evalTypeChecker snippet Map.empty @?= Right (FnType [] Void)
         ,
         testCase "Valid top level function foo" $
         let
@@ -219,6 +219,34 @@ evaluateTests = testGroup "Evaluate tests"
                 , Ret varx  -- x = 10
                 ]
         in runInterpreter snippet Map.empty @?= Right (Number 10)
+        ,
+        testCase "Top level functions main and foo" $
+        let
+            snippet = evaluate $ Program [foo, main]
+            fooId = Ident "foo"
+            x = Ident "x"
+            foo = FnDef fooId [Arg x Int] (ReturnType Int) fooBlock
+            fooBlock = Block [Ret $ EAdd (EVar x) Plus (ELitInt 1)]
+            mainId = Ident "main"
+            main = FnDef mainId [] (ReturnType Int) mainBlock
+            mainBlock = Block [Ret $ EApp fooId [ELitInt 2]]
+        in runInterpreter snippet Map.empty @?= Right (Number 3)
+        ,
+        testCase "Recursive foo" $
+        let
+            snippet = evaluate $ Program [foo, main]
+            fooId = Ident "foo"
+            x = Ident "x"
+            foo = FnDef fooId [Arg x Int] (ReturnType Int) fooBlock
+            cond = (ERel (EVar x) EQU (ELitInt 1))
+            fooBlock = Block [SExp $ CondElse cond true false]
+            true = Block [Ret $ ELitInt 1]
+            false = Block [Ret $ EAdd (EVar x) Plus recursiveMinus]
+            recursiveMinus = EApp fooId [(EAdd (EVar x) Minus (ELitInt 1))]
+            mainId = Ident "main"
+            main = FnDef mainId [] (ReturnType Int) mainBlock
+            mainBlock = Block [Ret $ EApp fooId [ELitInt 2]]
+        in runInterpreter snippet Map.empty @?= Right (Number 3)
     ]
 
 
