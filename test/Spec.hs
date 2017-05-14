@@ -124,6 +124,11 @@ typecheckTests = testGroup "Typecheck tests"
         let 
             snippet = typecheck $ EStrConcat (EString "foo") (ELitInt 1)
         in evalTypeChecker snippet Map.empty @?= Left "type error: trying to concatenate two non-strings"
+        ,
+        testCase "Built-in string: correct" $
+        let 
+            snippet = typecheck $ EApp (Ident "str") [(ELitInt 1)]
+        in evalTypeChecker snippet Map.empty @?= Right Str
     ]
 
 evaluateTests = testGroup "Evaluate tests"
@@ -265,6 +270,11 @@ evaluateTests = testGroup "Evaluate tests"
             fndef = FnDef id [] (ReturnType Int) body
             body = Block $ [Ret $ ELitInt 2, Ret $ ELitInt 3]
         in runInterpreter snippet Map.empty @?= Right (Number 2)
+        ,
+        testCase "Built-in string: correct" $
+        let 
+            snippet = evaluate $ EStrConcat (EApp (Ident "str") [(ELitInt 1)]) (EString " foo")
+        in runInterpreter snippet Map.empty @?= Right (Text "1 foo")
     ]
 
 
