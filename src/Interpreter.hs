@@ -33,6 +33,9 @@ data Value =
 
 data InterpreterException = ReturnException Value | ErrorException String deriving (Show, Eq)
 
+instance Error InterpreterException where
+    strMsg s = ErrorException s
+
 throwStringError :: (MonadError InterpreterException m) => String -> m a
 throwStringError str = throwError $ ErrorException str
 
