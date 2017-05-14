@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.Except
+import Control.Monad.Error
 import Control.Monad.Writer
 import Control.Monad.Identity
 import System.IO (hPutStrLn, stderr)
@@ -40,28 +40,28 @@ throwReturn :: (MonadError InterpreterException m) => Value -> m a
 throwReturn value = throwError $ ReturnException value
 
 newtype Interpreter a = Interpreter {
-  runInterpreter' :: ExceptT InterpreterException (WriterT [String] (StateT Env Identity)) a
+  runInterpreter' :: ErrorT InterpreterException (WriterT [String] (StateT Env Identity)) a
 } deriving (Functor, Applicative, Monad, MonadState Env, MonadWriter [String], MonadError InterpreterException)
 
 newtype TypeChecker a = TypeChecker {
-  runTypeChecker' :: ExceptT String (StateT TypeEnv Identity) a
+  runTypeChecker' :: ErrorT String (StateT TypeEnv Identity) a
 } deriving (Functor, Applicative, Monad, MonadState TypeEnv, MonadError String)
 
 runInterpreter :: Interpreter a -> Env -> Either InterpreterException a
--- runInterpreter = evalState . runExceptT . runInterpreter'
+-- runInterpreter = evalState . runErrorT . runInterpreter'
 runInterpreter int env = fst $ run env
-    where run = evalState . runWriterT . runExceptT . runInterpreter' $ int
+    where run = evalState . runWriterT . runErrorT . runInterpreter' $ int
 
 execInterpreter :: Interpreter a -> Env -> (Either InterpreterException a, [String])
--- runInterpreter = evalState . runExceptT . runInterpreter'
+-- runInterpreter = evalState . runErrorT . runInterpreter'
 execInterpreter int env = run env
-    where run = evalState . runWriterT . runExceptT . runInterpreter' $ int
+    where run = evalState . runWriterT . runErrorT . runInterpreter' $ int
 
 evalTypeChecker :: TypeChecker a -> TypeEnv -> Either String a
-evalTypeChecker = evalState . runExceptT . runTypeChecker'
+evalTypeChecker = evalState . runErrorT . runTypeChecker'
 
 execTypeChecker :: TypeChecker a -> TypeEnv -> TypeEnv
-execTypeChecker = execState . runExceptT . runTypeChecker'
+execTypeChecker = execState . runErrorT . runTypeChecker'
 
 runProgram :: (ProgramNode a) => a -> IO ()
 runProgram node = case runInterpreter (evaluate node) Map.empty of

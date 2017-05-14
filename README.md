@@ -1,5 +1,9 @@
 # rdza
 
+Przykłady w `good` ilustrują wszystkie mozliwości języka.
+Przykłady w `bad` ilustrują większość błędow wykrywanych przez interpreter.
+    (przede wszystkim statycznie)
+
 Język imperatywny
 Język imperatywny, najlepiej w składni opartej o Pascala lub C.
 Na 8 punktów
