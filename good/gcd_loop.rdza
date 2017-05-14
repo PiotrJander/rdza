@@ -1,0 +1,14 @@
+fn gcd(a: int, b: int) of int {
+    let t = 0;
+    while (b != 0) {
+        t = b;
+        b = a % b;
+        a = t;
+    };
+    a
+}
+
+fn main() {
+    let g = gcd(75, 30);
+    print str(g)
+}
