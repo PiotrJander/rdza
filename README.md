@@ -1,12 +1,8 @@
 # rdza
 
-important:
-* compilation with stack fails due to the lexer!
-
-ask instructor:
-1) how about immutable data types? then no distinction between passing
-    by reference and value; how does this affect closures?
-2) how are immutable dictionaries and maps implemented?
+notes:
+1) we have static typechecking
+2) but can't check early returns
 
 fix syntax:
 * but the distinction makes sense because we don't want decls and ass in exprs
@@ -28,6 +24,7 @@ simple:
 
 
 
+
 todo:
 * impl return
 * print function
@@ -36,27 +33,5 @@ todo:
 * strings
 * then shadowing and scoping
 * then complex data type like lists, dicts, tuples
-
-functions:
-* each function inherits the scope it was defined in
-    so for global functions, the scope contains top level functions
-    for nested functions and anonymous functions, local scope
-
-requirements:
-* now on to functions
-* 1) pass by value
-* 2) pass by reference
-* print
-* optional: for loop
-* string type
-* ---
-* identifier shadowing and scopes
 * runtime errors like zero division
-* functions returning values
-* lists / maps / records
-* tuples with destructuring
-* pass function as parameter
-* return function, function closures
-* anonymous functions
-* ---
-* nested functions
+

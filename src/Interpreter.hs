@@ -134,8 +134,10 @@ instance ProgramNode Stmt where
             value <- evaluate expr
             modify $ Map.insert ident value
             return Void'
-        Ret expr -> evaluate expr
-        VRet -> return Void'
+        Ret expr -> do
+            value <- evaluate expr
+            throwReturn value
+        VRet -> throwReturn Void'
         SExp expr -> evaluate expr
 
     -- | Typechecking
@@ -172,7 +174,10 @@ instance ProgramNode Expr where
                     forM (zip params exprs) $ \((Arg ident _), expr) -> do
                         value <- evaluate expr
                         modify $ Map.insert ident value
-                    evaluate block 
+                    let catcher e = case e of
+                                    ReturnException v -> return v
+                                    ErrorException s -> throwStringError s
+                    evaluate block `catchError` catcher
         -- EString string -> return $ String' $ string
         Cond expr block -> do
             cond <- evaluate expr

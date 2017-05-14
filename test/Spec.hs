@@ -142,7 +142,7 @@ evaluateTests = testGroup "Evaluate tests"
         let
             snippet = evaluate $ Block [
                 Decl (Ident "x") $ ELitInt 2
-                , Ret $ EVar $ Ident "x"
+                , SExp $ EVar $ Ident "x"
                 ]
         in runInterpreter snippet Map.empty @?= Right (Number 2)
         ,
@@ -151,7 +151,7 @@ evaluateTests = testGroup "Evaluate tests"
             snippet = evaluate $ Block [
                 Decl (Ident "x") $ ELitInt 2,
                 Ass (Ident "x") $ EAdd (EVar (Ident "x")) Plus (ELitInt 1),
-                Ret $ EVar $ Ident "x"]
+                SExp $ EVar $ Ident "x"]
         in runInterpreter snippet Map.empty @?= Right (Number 3)
         ,
         -- testCase "This should break" $
@@ -175,7 +175,7 @@ evaluateTests = testGroup "Evaluate tests"
                     -- this conditional should NOT be taken
                     Ass x $ EAdd var Plus one
                     ])
-                , Ret var  -- x = 3
+                , SExp $ var  -- x = 3
                 ]
         in runInterpreter snippet Map.empty @?= Right (Number 3)
         ,
@@ -199,7 +199,7 @@ evaluateTests = testGroup "Evaluate tests"
                     -- this branch shoult NOT be taken
                     Ass y three  -- y := 3
                     ])
-                , Ret vary  -- y = 2
+                , SExp $ vary  -- y = 2
                 ]
         in runInterpreter snippet Map.empty @?= Right (Number 2)
         ,
@@ -216,7 +216,7 @@ evaluateTests = testGroup "Evaluate tests"
                     -- this block should be repeated ten times
                     Ass x $ EAdd varx Plus one  -- x := x + 1
                     ])
-                , Ret varx  -- x = 10
+                , SExp $ varx  -- x = 10
                 ]
         in runInterpreter snippet Map.empty @?= Right (Number 10)
         ,
@@ -247,6 +247,14 @@ evaluateTests = testGroup "Evaluate tests"
             main = FnDef mainId [] (ReturnType Int) mainBlock
             mainBlock = Block [Ret $ EApp fooId [ELitInt 2]]
         in runInterpreter snippet Map.empty @?= Right (Number 3)
+        ,
+        testCase "Early return" $
+        let
+            snippet = evaluate $ fndef
+            id = Ident "main"
+            fndef = FnDef id [] (ReturnType Int) body
+            body = Block $ [Ret $ ELitInt 2, Ret $ ELitInt 3]
+        in runInterpreter snippet Map.empty @?= Right (Number 2)
     ]
 
 
