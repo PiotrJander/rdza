@@ -61,59 +61,13 @@ typecheckTests = testGroup "Typecheck tests"
             block = Block []
         in evalTypeChecker snippet Map.empty @?= Right Void
         ,
-        testCase "Valid top level function main with EmptyReturnType" $
-        let
-            snippet = typecheck $ Program [main]
-            main = FnDef (Ident "main") [] EmptyReturnType block
-            block = Block []
-        in evalTypeChecker snippet Map.empty @?= Right Void
-        ,
         testCase "Valid top level function foo" $
         let
-            snippet = typecheck $ FnDef (Ident "foo") [Arg ident Int] (ReturnType Int) block
+            snippet = typecheck $ Program [main]
+            main = FnDef (Ident "foo") [Arg ident Bool] (ReturnType Int) block
             ident = Ident "baz"
             block = Block [Ret $ EVar ident]
-        in evalTypeChecker snippet Map.empty @?= Right (FnType [Int] Int)
-        ,
-        testCase "Invalid top level function foo" $
-        let
-            snippet = typecheck $ FnDef (Ident "foo") [Arg ident Bool] (ReturnType Int) block
-            ident = Ident "baz"
-            block = Block [Ret $ EVar ident]
-            err = "type error: function foo was declared to have return type Int but the actual return type is Bool"
-        in evalTypeChecker snippet Map.empty @?= Left err
-        ,
-        testCase "Function application: too few arguments" $
-        let 
-            snippet = typecheck $ EApp ident []
-            ident = Ident "func"
-            fntype = FnType [Int] Int
-            typeenv = Map.fromList [(ident, fntype)]
-        in evalTypeChecker snippet typeenv @?= Left "function func applied to too few arguments"
-        ,
-        testCase "Function application: parameter mismatch" $
-        let 
-            snippet = typecheck $ EApp ident [ELitTrue]
-            ident = Ident "func"
-            fntype = FnType [Int] Int
-            typeenv = Map.fromList [(ident, fntype)]
-        in evalTypeChecker snippet typeenv @?= Left "function func given incorrect 1 argument"
-        ,
-        testCase "Function application: parameter mismatch" $
-        let 
-            snippet = typecheck $ EApp ident [ELitTrue, ELitFalse]
-            ident = Ident "func"
-            fntype = FnType [Bool, Int] Int
-            typeenv = Map.fromList [(ident, fntype)]
-        in evalTypeChecker snippet typeenv @?= Left "function func given incorrect 2 argument"
-        ,
-        testCase "Function application: Correct" $
-        let 
-            snippet = typecheck $ EApp ident [ELitTrue, ELitInt 1]
-            ident = Ident "func"
-            fntype = FnType [Bool, Int] Int
-            typeenv = Map.fromList [(ident, fntype)]
-        in evalTypeChecker snippet typeenv @?= Right Int
+        in evalTypeChecker snippet Map.empty @?= Right Void
     ]
 
 evaluateTests = testGroup "Evaluate tests"

@@ -77,15 +77,19 @@ instance ProgramNode TopDef where
             then evaluate $ EApp ident []
             else return Void'
 
-    typecheck (FnDef ident@(Ident name) args (ReturnType ret) block) = do
+    typecheck (FnDef ident@(Ident name) args returnType block) = do
         -- add function parameters to the type env
         forM args $ \(Arg ident type_) -> modify $ Map.insert ident type_
 
         actualType <- typecheck block
-        let argTypes = map (\(Arg _ type_) -> type_) args
+
+        let ret = case returnType of
+                        ReturnType ret -> ret
+                        EmptyReturnType -> Void
         if ret == actualType
-            then return $ FnType argTypes ret
-            else throwError $ "type error: function " ++ show name ++ " was declared to "
+            then return $ let argTypes = map (\(Arg _ type_) -> type_) args 
+                            in FnType argTypes ret
+            else throwError $ "type error: function " ++ name ++ " was declared to "
                                 ++ "have return type " ++ show ret ++ " but the actual "
                                 ++ "return type is " ++ show actualType
 
@@ -95,11 +99,13 @@ instance ProgramNode Block where
 
 instance ProgramNode [Stmt] where
     evaluate [] = return Void'
+    evaluate [stmt] = evaluate stmt
     evaluate (stmt:stmts) = do
         evaluate stmt
         evaluate stmts
 
     typecheck [] = return Void
+    typecheck [stmt] = typecheck stmt
     typecheck (stmt:stmts) = do
         typecheck stmt
         typecheck stmts
@@ -246,10 +252,10 @@ instance ProgramNode Expr where
                         LT -> throwError $ "function " ++ name ++ " applied to too few arguments"
                         EQ -> return ()
                         GT -> throwError $ "function " ++ name ++ " applied to too many arguments"
-                    forM (zip paramTypes exprs) $ \(paramType, expr) -> do
+                    forM (zip3 [1..] paramTypes exprs) $ \(i, paramType, expr) -> do
                         exprType <- typecheck expr
                         when (paramType /= exprType) $ throwError $ "function " ++ name ++
-                                                        " given incorrect argument types"
+                                                        " given incorrect " ++ show i ++ " argument"
                     -- else, type of all parameters and arguments agree
                     return retType
         -- EString string -> return $ String' $ string

@@ -27,7 +27,12 @@ simple:
 * now impl function application and typechecking
 * first typechecking
 * simple
-* 
+* now test typechecking a function
+
+* given parameters, return type doesn't work
+
+* function application
+* too many / few args
 
 
 
