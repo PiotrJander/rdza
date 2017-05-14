@@ -1,0 +1,7 @@
+fn foo (x: int) of int {
+    return true
+}
+
+fn main () {
+    foo(1)
+}

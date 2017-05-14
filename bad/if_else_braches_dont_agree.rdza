@@ -1,0 +1,4 @@
+fn main () {
+    let p = true;
+    if (p) { 1 } else { "xyz" }
+}

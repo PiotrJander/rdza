@@ -12,6 +12,8 @@ import Control.Monad.State
 import Control.Monad.Except
 import Control.Monad.Writer
 import Control.Monad.Identity
+import System.IO (hPutStrLn, stderr)
+import System.Exit (exitFailure)
 
 -- import qualified AbsRdza as Abs
 import AbsRdza
@@ -65,6 +67,20 @@ runProgram node = case runInterpreter (evaluate node) Map.empty of
                 Left err -> print err
                 Right value -> print value
 
+execProgram :: (ProgramNode a) => a -> IO ()
+execProgram node = do
+    case evalTypeChecker (typecheck node) Map.empty of
+        Right _ -> return ()
+        Left err -> do
+                        hPutStrLn stderr ("Static type checking error: " ++ err)
+                        exitFailure
+    let (r, w) = execInterpreter (evaluate node) Map.empty
+    forM w $ \line -> putStrLn (line ++ "\n")
+    case r of
+        Left (ErrorException err) -> hPutStrLn stderr err
+        Left (ReturnException _) -> hPutStrLn stderr "internal error"
+        Right value -> putStrLn ("Program result: " ++ show value)
+
 class ProgramNode b where
     evaluate :: b -> Interpreter Value
     typecheck :: b -> TypeChecker Type
@@ -87,7 +103,10 @@ instance ProgramNode [TopDef] where
         typecheck tds
 
 instance ProgramNode TopDef where
-    evaluate (FnDef ident@(Ident name) args (ReturnType ret) block) = do
+    evaluate (FnDef ident@(Ident name) args returnType block) = do
+        let ret = case returnType of
+                        ReturnType ret -> ret
+                        EmptyReturnType -> Void
         modify $ Map.insert ident $ Callable ident args ret block
 
         -- if the function is main, execute the program by applying main to ()
@@ -105,7 +124,9 @@ instance ProgramNode TopDef where
                         ReturnType ret -> ret
                         EmptyReturnType -> Void
         if ret == actualType
-            then return $ let argTypes = map (\(Arg _ type_) -> type_) args 
+            then do let params = map (\(Arg _ type_) -> type_) args
+                    modify $ Map.insert ident (FnType params ret)
+                    return $ let argTypes = map (\(Arg _ type_) -> type_) args 
                             in FnType argTypes ret
             else throwError $ "type error: function " ++ name ++ " was declared to "
                                 ++ "have return type " ++ show ret ++ " but the actual "
@@ -166,7 +187,7 @@ instance ProgramNode Stmt where
             newt <- typecheck expr
             if oldt == Just newt
                 then return Void
-                else throwError "type error: assignment"
+                else throwError "type error: trying to change type of declared variable"
         Ret expr -> typecheck expr  -- TODO agree with function return type
         VRet -> return Void
         SExp expr -> typecheck expr

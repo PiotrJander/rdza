@@ -235,18 +235,6 @@ evaluateTests = testGroup "Evaluate tests"
                 ]
         in runInterpreter snippet Map.empty @?= Right (Number 10)
         ,
-        testCase "Top level functions main and foo" $
-        let
-            snippet = evaluate $ Program [foo, main]
-            fooId = Ident "foo"
-            x = Ident "x"
-            foo = FnDef fooId [Arg x Int] (ReturnType Int) fooBlock
-            fooBlock = Block [Ret $ EAdd (EVar x) Plus (ELitInt 1)]
-            mainId = Ident "main"
-            main = FnDef mainId [] (ReturnType Int) mainBlock
-            mainBlock = Block [Ret $ EApp fooId [ELitInt 2]]
-        in runInterpreter snippet Map.empty @?= Right (Number 3)
-        ,
         testCase "Recursive foo" $
         let
             snippet = evaluate $ Program [foo, main]
@@ -275,6 +263,26 @@ evaluateTests = testGroup "Evaluate tests"
         let 
             snippet = evaluate $ EStrConcat (EApp (Ident "str") [(ELitInt 1)]) (EString " foo")
         in runInterpreter snippet Map.empty @?= Right (Text "1 foo")
+        ,
+        testCase "Top level functions main and foo" $
+        let
+            snippet = evaluate $ Program [foo, main]
+            fooId = Ident "foo"
+            x = Ident "x"
+            foo = FnDef fooId [Arg x Int] (ReturnType Int) fooBlock
+            fooBlock = Block [Ret $ EAdd (EVar x) Plus (ELitInt 1)]
+            mainId = Ident "main"
+            main = FnDef mainId [] (ReturnType Int) mainBlock
+            mainBlock = Block [Ret $ EApp fooId [ELitInt 2]]
+        in runInterpreter snippet Map.empty @?= Right (Number 3)
+        -- ,
+        -- testCase "Wrong arg number" $
+        -- let 
+        --     foo = FnDef (Ident "foo") [Arg (Ident "x") Int,Arg (Ident "y") Int] EmptyReturnType (Block [])
+        --     main = FnDef (Ident "main") [] EmptyReturnType (Block [SExp (EApp (Ident "foo") [ELitInt 1])])
+        --     node = Program [foo, main]
+        --     snippet = evaluate $ node
+        -- in runInterpreter snippet Map.empty @?= Right (Text "1 foo")
     ]
 
 
