@@ -131,7 +131,7 @@ evaluateTests = testGroup "Evaluate tests"
         testCase "Throw error in mult expression" $
         let
             snippet = evaluate (EMul (ELitInt 2) Times ELitTrue)
-        in runInterpreter snippet Map.empty @?= Left "type error: Number 2 and Boolean True"
+        in runInterpreter snippet Map.empty @?= Left (ErrorException "type error: Number 2 and Boolean True")
         ,
         testCase "Lookup variable" $
         let

@@ -1,5 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Interpreter where
 
@@ -27,15 +28,23 @@ data Value =
     | Callable Ident [Arg] Type Block
     deriving (Eq, Show)
 
+data InterpreterException = ReturnException Value | ErrorException String deriving (Show, Eq)
+
+throwStringError :: (MonadError InterpreterException m) => String -> m a
+throwStringError str = throwError $ ErrorException str
+
+throwReturn :: (MonadError InterpreterException m) => Value -> m a
+throwReturn value = throwError $ ReturnException value
+
 newtype Interpreter a = Interpreter {
-  runInterpreter' :: ExceptT String (StateT Env Identity) a
-} deriving (Functor, Applicative, Monad, MonadState Env, MonadError String)
+  runInterpreter' :: ExceptT InterpreterException (StateT Env Identity) a
+} deriving (Functor, Applicative, Monad, MonadState Env, MonadError InterpreterException)
 
 newtype TypeChecker a = TypeChecker {
   runTypeChecker' :: ExceptT String (StateT TypeEnv Identity) a
 } deriving (Functor, Applicative, Monad, MonadState TypeEnv, MonadError String)
 
-runInterpreter :: Interpreter a -> Env -> Either String a
+runInterpreter :: Interpreter a -> Env -> Either InterpreterException a
 runInterpreter = evalState . runExceptT . runInterpreter'
 
 evalTypeChecker :: TypeChecker a -> TypeEnv -> Either String a
@@ -121,7 +130,7 @@ instance ProgramNode Stmt where
             return Void'
         Ass ident expr -> do
             pred <- gets $ Map.member ident
-            unless pred $ throwError $ "undeclared identifier " ++ show ident
+            unless pred $ throwStringError $ "undeclared identifier " ++ show ident
             value <- evaluate expr
             modify $ Map.insert ident value
             return Void'
@@ -151,14 +160,14 @@ instance ProgramNode Expr where
     evaluate expr = case expr of
         EVar ident -> do
             result <- gets $ Map.lookup ident
-            maybe (throwError $ "Unbound variable " ++ show ident) return result
+            maybe (throwStringError $ "Unbound variable " ++ show ident) return result
         ELitInt integer -> return $ Number integer
         ELitTrue -> return $ Boolean True
         ELitFalse -> return $ Boolean False
         EApp ident@(Ident name) exprs -> do
             callable <- gets $ Map.lookup ident
             case callable of
-                Nothing -> throwError $ "function " ++ name ++ " not in scope"
+                Nothing -> throwStringError $ "function " ++ name ++ " not in scope"
                 Just (Callable _ params _ block) -> do
                     forM (zip params exprs) $ \((Arg ident _), expr) -> do
                         value <- evaluate expr
@@ -170,13 +179,13 @@ instance ProgramNode Expr where
             case cond of
                 Boolean True -> evaluate block
                 Boolean False -> return Void'
-                _ -> throwError "type error: if"
+                _ -> throwStringError "type error: if"
         CondElse expr block1 block2 -> do
             cond <- evaluate expr
             case cond of
                 Boolean True -> evaluate block1
                 Boolean False -> evaluate block2
-                _ -> throwError "type error: if-else"
+                _ -> throwStringError "type error: if-else"
         loop@(While expr block) -> do
             cond <- evaluate expr
             case cond of
@@ -184,19 +193,19 @@ instance ProgramNode Expr where
                     evaluate block
                     evaluate loop
                 Boolean False -> return Void'
-                _ -> throwError "type error: while"
+                _ -> throwStringError "type error: while"
         BStmt block -> evaluate block
         -- Closure args expr -> failure x
         Neg expr -> do
             result <- evaluate expr
             case result of
                 Number n -> return $ Number (-n)
-                _ -> throwError "type error: negate"
+                _ -> throwStringError "type error: negate"
         Not expr -> do
             result <- evaluate expr
             case result of
                 Boolean p -> return $ Boolean $ not p
-                _ -> throwError "type error: not"
+                _ -> throwStringError "type error: not"
         EMul expr1 mulop expr2 -> do
             m1 <- evaluate expr1
             m2 <- evaluate expr2
@@ -204,7 +213,7 @@ instance ProgramNode Expr where
                 (Number v1, Number v2) -> return $ Number $
                     let op = case mulop of {Times -> (*); Div -> div; Mod -> mod}
                     in op v1 v2
-                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+                _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
         EAdd expr1 addop expr2 -> do
             m1 <- evaluate expr1
             m2 <- evaluate expr2
@@ -212,7 +221,7 @@ instance ProgramNode Expr where
                 (Number v1, Number v2) -> return $ Number $
                     let op = case addop of {Plus -> (+); Minus -> (-)}
                     in op v1 v2
-                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+                _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
         ERel expr1 relop expr2 -> do
             m1 <- evaluate expr1
             m2 <- evaluate expr2
@@ -221,19 +230,19 @@ instance ProgramNode Expr where
                     let op = case relop of {LTH -> (<); LE -> (<=); GTH -> (>); GE -> (>=);
                                             EQU -> (==); NE -> (/=)}
                     in op v1 v2
-                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+                _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
         EAnd expr1 expr2 -> do
             m1 <- evaluate expr1
             m2 <- evaluate expr2
             case (m1, m2) of
                 (Boolean v1, Boolean v2) -> return $ Boolean $ v1 && v2
-                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+                _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
         EOr expr1 expr2 -> do
             m1 <- evaluate expr1
             m2 <- evaluate expr2
             case (m1, m2) of
                 (Boolean v1, Boolean v2) -> return $ Boolean $ v1 || v2
-                _ -> throwError $ "type error: " ++ show m1 ++ " and " ++ show m2
+                _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
 
     -- | Typechecking
     typecheck expr = case expr of
