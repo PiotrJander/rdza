@@ -15,12 +15,8 @@ todo:
 
 
 simple examples:
-early return
 euclid alg
-simple recursion: factorial
-printing, strconcat
 arithmetic
-conditionals
 arithmetic, boolean logic
 
 

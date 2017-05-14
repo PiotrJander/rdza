@@ -1,0 +1,11 @@
+fn fact (n: int) of int {
+    if (n == 0) {  // example of conditional
+        return 1  // example of early return
+    };
+    n * fact(n - 1)  // example of recursion
+}
+
+fn main () {
+    let res = fact(10);
+    print "factorial of 10 is " ++ str(res)  // example of printing and string concatenation
+}

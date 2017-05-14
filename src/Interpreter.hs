@@ -14,6 +14,7 @@ import Control.Monad.Writer
 import Control.Monad.Identity
 import System.IO (hPutStrLn, stderr)
 import System.Exit (exitFailure)
+import Debug.Trace
 
 -- import qualified AbsRdza as Abs
 import AbsRdza
@@ -117,17 +118,15 @@ instance ProgramNode TopDef where
     typecheck (FnDef ident@(Ident name) args returnType block) = do
         -- add function parameters to the type env
         forM args $ \(Arg ident type_) -> modify $ Map.insert ident type_
-
-        actualType <- typecheck block
-
+        let params = map (\(Arg _ type_) -> type_) args
         let ret = case returnType of
                         ReturnType ret -> ret
                         EmptyReturnType -> Void
+        let fntype = let argTypes = map (\(Arg _ type_) -> type_) args in FnType argTypes ret
+        modify $ Map.insert ident fntype
+        actualType <- typecheck block
         if ret == actualType
-            then do let params = map (\(Arg _ type_) -> type_) args
-                    modify $ Map.insert ident (FnType params ret)
-                    return $ let argTypes = map (\(Arg _ type_) -> type_) args 
-                            in FnType argTypes ret
+            then return $ fntype
             else throwError $ "type error: function " ++ name ++ " was declared to "
                                 ++ "have return type " ++ show ret ++ " but the actual "
                                 ++ "return type is " ++ show actualType
@@ -276,7 +275,7 @@ instance ProgramNode Expr where
             case (m1, m2) of
                 (Number v1, Number v2) -> 
                     let op = case mulop of {Times -> (*); Div -> div; Mod -> mod}
-                    in if mulop == Div && v2 == (toInteger 0) then throwStringError "division by zero" else return $ Number $ op v1 v2
+                    in if mulop `elem` [Div, Mod] && v2 == (toInteger 0) then throwStringError "division by zero" else return $ Number $ op v1 v2
                 _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
         EAdd expr1 addop expr2 -> do
             m1 <- evaluate expr1
@@ -329,6 +328,9 @@ instance ProgramNode Expr where
                                     else throwError $ show v ++ " can't be converted to string"
                             else throwError "function str applied to wrong number of args"
                 else do
+                        -- TODO debug state
+                        -- s <- get
+                        -- trace "state: " $ return $ fmap Map.toList s
                         fntype <- gets $ Map.lookup ident
                         case fntype of
                             Nothing -> throwError $ "function " ++ name ++ " not in scope"
