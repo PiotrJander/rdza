@@ -25,11 +25,8 @@ data Value =
     -- | Character Char
     | Boolean Bool
     | Void'
-    | Function Callable
+    | Callable Ident [Arg] Type Block
     deriving (Eq, Show)
-
--- data Callable = Callable { args :: [Arg], returnType :: ReturnType, block :: Block }
-data Callable = Callable Ident [Arg] ReturnType Block
 
 newtype Interpreter a = Interpreter {
   runInterpreter' :: ExceptT String (StateT Env Identity) a
@@ -73,22 +70,25 @@ instance ProgramNode [TopDef] where
         typecheck tds
 
 instance ProgramNode TopDef where
-    evaluate (FnDef ident@(Ident name) args ret block) = 
+    evaluate (FnDef ident@(Ident name) args (ReturnType ret) block) = do
         modify $ Map.insert ident $ Callable ident args ret block
 
         -- if the function is main, execute the program by applying main to ()
-        when (name == "main") $ evaluate $ EApp ident []
+        if name == "main"
+            then evaluate $ EApp ident []
+            else return Void'
 
-    typecheck (FnDef ident@(Ident name) args ret block) = do
+    typecheck (FnDef ident@(Ident name) args (ReturnType ret) block) = do
         -- add function parameters to the type env
         forM args $ \(Arg ident type_) -> modify $ Map.insert ident type_
 
         actualType <- typecheck block
+        let argTypes = map (\(Arg _ type_) -> type_) args
         if ret == actualType
-            then return $ FnDef args ret
-            else throwError $ "type error: function " ++ name ++ " was declared to "
-                                ++ "have return type " ++ ret ++ " but the actual "
-                                ++ "return type is " ++ actualType
+            then return $ FnType argTypes ret
+            else throwError $ "type error: function " ++ show name ++ " was declared to "
+                                ++ "have return type " ++ show ret ++ " but the actual "
+                                ++ "return type is " ++ show actualType
 
 instance ProgramNode Block where
     evaluate (Block stmts) = evaluate stmts
@@ -100,7 +100,7 @@ instance ProgramNode [Stmt] where
         evaluate stmt
         evaluate stmts
 
-    typecheck [] = return Void'
+    typecheck [] = return Void
     typecheck (stmt:stmts) = do
         typecheck stmt
         typecheck stmts
@@ -152,8 +152,10 @@ instance ProgramNode Expr where
             callable <- gets $ Map.lookup ident
             case callable of
                 Nothing -> throwError $ "function " ++ name ++ " not in scope"
-                Callable _ params _ block -> do
-                    forM (zip params exprs) $ \(param, expr) -> modify $ Map.insert param expr
+                Just (Callable _ params _ block) -> do
+                    forM (zip params exprs) $ \((Arg ident _), expr) -> do
+                        value <- evaluate expr
+                        modify $ Map.insert ident value
                     evaluate block 
         -- EString string -> return $ String' $ string
         Cond expr block -> do
@@ -236,7 +238,21 @@ instance ProgramNode Expr where
         ELitInt _ -> return Int
         ELitTrue -> return Bool
         ELitFalse -> return Bool
-        -- EApp ident exprs -> failure x
+        EApp ident@(Ident name) exprs -> do
+            fntype <- gets $ Map.lookup ident
+            case fntype of
+                Nothing -> throwError $ "function " ++ name ++ " not in scope"
+                Just (FnType paramTypes retType) -> do
+                    case length exprs `compare` length paramTypes of
+                        LT -> throwError $ "function " ++ name ++ " applied to too few arguments"
+                        EQ -> return ()
+                        GT -> throwError $ "function " ++ name ++ " applied to too many arguments"
+                    forM (zip paramTypes exprs) $ \(paramType, expr) -> do
+                        exprType <- typecheck expr
+                        when (paramType /= exprType) $ throwError $ "function " ++ name ++
+                                                        " given incorrect argument types"
+                    -- else, type of all parameters and arguments agree
+                    return retType
         -- EString string -> return $ String' $ string
         Cond expr block -> do
             conditionTypecheck expr "if"
