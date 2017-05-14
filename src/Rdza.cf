@@ -33,6 +33,8 @@ VRet.      Stmt ::= "return" ;
 
 SExp.      Stmt ::= Expr ;
 
+Print.	   Stmt ::= "print" Expr ;
+
 -- Types ---------------------------------------------------
 
 Int.       Type ::= "int" ;
@@ -76,6 +78,8 @@ While.     Expr6 ::= "while" "(" Expr ")" Block ;
 BStmt.     Expr6 ::= Block ;
 
 Closure.   Expr6 ::= "|" [Arg] "|" Expr;
+
+EStrConcat. Expr5 ::= Expr6 "++" Expr6 ;
 
 Neg.       Expr5 ::= "-" Expr6 ;
 

@@ -35,7 +35,6 @@ transStmt x = case x of
   Ret expr -> failure x
   VRet -> failure x
   SExp expr -> failure x
-  Print expr -> failure x
 transType :: Type -> Result
 transType x = case x of
   Int -> failure x
@@ -59,7 +58,6 @@ transExpr x = case x of
   While expr block -> failure x
   BStmt block -> failure x
   Closure args expr -> failure x
-  EStrConcat expr1 expr2 -> failure x
   Neg expr -> failure x
   Not expr -> failure x
   EMul expr1 mulop expr2 -> failure x
