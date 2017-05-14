@@ -114,6 +114,16 @@ typecheckTests = testGroup "Typecheck tests"
             fntype = FnType [Bool, Int] Int
             typeenv = Map.fromList [(ident, fntype)]
         in evalTypeChecker snippet typeenv @?= Right Int
+        ,
+        testCase "String concat: correct" $
+        let 
+            snippet = typecheck $ EStrConcat (EString "foo") (EString "bar")
+        in evalTypeChecker snippet Map.empty @?= Right Str
+        ,
+        testCase "String concat: incorrect" $
+        let 
+            snippet = typecheck $ EStrConcat (EString "foo") (ELitInt 1)
+        in evalTypeChecker snippet Map.empty @?= Left "type error: trying to concatenate two non-strings"
     ]
 
 evaluateTests = testGroup "Evaluate tests"

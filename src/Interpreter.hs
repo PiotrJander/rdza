@@ -9,8 +9,8 @@ import qualified Data.Map as Map
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
-import Control.Monad.Reader
 import Control.Monad.Except
+import Control.Monad.Writer
 import Control.Monad.Identity
 
 -- import qualified AbsRdza as Abs
@@ -21,7 +21,7 @@ type TypeEnv = Map.Map Ident Type
 
 data Value =
       Number Integer
-    -- | Str String
+    | Text String
     -- | Character Char
     | Boolean Bool
     | Void'
@@ -37,15 +37,22 @@ throwReturn :: (MonadError InterpreterException m) => Value -> m a
 throwReturn value = throwError $ ReturnException value
 
 newtype Interpreter a = Interpreter {
-  runInterpreter' :: ExceptT InterpreterException (StateT Env Identity) a
-} deriving (Functor, Applicative, Monad, MonadState Env, MonadError InterpreterException)
+  runInterpreter' :: ExceptT InterpreterException (WriterT [String] (StateT Env Identity)) a
+} deriving (Functor, Applicative, Monad, MonadState Env, MonadWriter [String], MonadError InterpreterException)
 
 newtype TypeChecker a = TypeChecker {
   runTypeChecker' :: ExceptT String (StateT TypeEnv Identity) a
 } deriving (Functor, Applicative, Monad, MonadState TypeEnv, MonadError String)
 
 runInterpreter :: Interpreter a -> Env -> Either InterpreterException a
-runInterpreter = evalState . runExceptT . runInterpreter'
+-- runInterpreter = evalState . runExceptT . runInterpreter'
+runInterpreter int env = fst $ run env
+    where run = evalState . runWriterT . runExceptT . runInterpreter' $ int
+
+execInterpreter :: Interpreter a -> Env -> (Either InterpreterException a, [String])
+-- runInterpreter = evalState . runExceptT . runInterpreter'
+execInterpreter int env = run env
+    where run = evalState . runWriterT . runExceptT . runInterpreter' $ int
 
 evalTypeChecker :: TypeChecker a -> TypeEnv -> Either String a
 evalTypeChecker = evalState . runExceptT . runTypeChecker'
@@ -70,13 +77,13 @@ instance ProgramNode [TopDef] where
     evaluate [] = return Void'
     evaluate [td] = evaluate td
     evaluate (td:tds) = do
-        evaluate td
+        _ <- evaluate td
         evaluate tds
 
     typecheck [] = return Void
     typecheck [td] = typecheck td
     typecheck (td:tds) = do
-        typecheck td
+        _ <- typecheck td
         typecheck tds
 
 instance ProgramNode TopDef where
@@ -139,6 +146,13 @@ instance ProgramNode Stmt where
             throwReturn value
         VRet -> throwReturn Void'
         SExp expr -> evaluate expr
+        Print expr -> do
+            v <- evaluate expr
+            case v of
+                Text s -> do
+                    tell [s]
+                    return Void'
+                _ -> throwStringError $ "type error: trying to print not a string"
 
     -- | Typechecking
     typecheck stmt = case stmt of
@@ -156,6 +170,11 @@ instance ProgramNode Stmt where
         Ret expr -> typecheck expr  -- TODO agree with function return type
         VRet -> return Void
         SExp expr -> typecheck expr
+        Print expr -> do
+            t <- typecheck expr
+            case t of
+                Str -> return Void
+                _ -> throwError $ "type error: trying to print a non-string"
 
 instance ProgramNode Expr where
     -- | Evaluation
@@ -178,7 +197,8 @@ instance ProgramNode Expr where
                                     ReturnException v -> return v
                                     ErrorException s -> throwStringError s
                     evaluate block `catchError` catcher
-        -- EString string -> return $ String' $ string
+                Just _ -> throwStringError $ "ident " ++ name ++ " is not a function"
+        EString string -> return $ Text $ string
         Cond expr block -> do
             cond <- evaluate expr
             case cond of
@@ -201,6 +221,12 @@ instance ProgramNode Expr where
                 _ -> throwStringError "type error: while"
         BStmt block -> evaluate block
         -- Closure args expr -> failure x
+        EStrConcat e1 e2 -> do
+            v1 <- evaluate e1
+            v2 <- evaluate e2
+            case (v1, v2) of
+                (Text s1, Text s2) -> return $ Text $ s1 ++ s2
+                _ -> throwStringError $ "type error: trying to concat two non-strings"
         Neg expr -> do
             result <- evaluate expr
             case result of
@@ -217,7 +243,7 @@ instance ProgramNode Expr where
             case (m1, m2) of
                 (Number v1, Number v2) -> return $ Number $
                     let op = case mulop of {Times -> (*); Div -> div; Mod -> mod}
-                    in op v1 v2
+                    in if mulop == Div && m2 == 0 then throwStringError "division by zero" else op v1 v2
                 _ -> throwStringError $ "type error: " ++ show m1 ++ " and " ++ show m2
         EAdd expr1 addop expr2 -> do
             m1 <- evaluate expr1
@@ -260,21 +286,26 @@ instance ProgramNode Expr where
         ELitTrue -> return Bool
         ELitFalse -> return Bool
         EApp ident@(Ident name) exprs -> do
-            fntype <- gets $ Map.lookup ident
-            case fntype of
-                Nothing -> throwError $ "function " ++ name ++ " not in scope"
-                Just (FnType paramTypes retType) -> do
-                    case length exprs `compare` length paramTypes of
-                        LT -> throwError $ "function " ++ name ++ " applied to too few arguments"
-                        EQ -> return ()
-                        GT -> throwError $ "function " ++ name ++ " applied to too many arguments"
-                    forM (zip3 [1..] paramTypes exprs) $ \(i, paramType, expr) -> do
-                        exprType <- typecheck expr
-                        when (paramType /= exprType) $ throwError $ "function " ++ name ++
-                                                        " given incorrect " ++ show i ++ " argument"
-                    -- else, type of all parameters and arguments agree
-                    return retType
-        -- EString string -> return $ String' $ string
+            if name == "str"
+                then do -- built-in converter to strings
+                        
+                else do
+                        fntype <- gets $ Map.lookup ident
+                        case fntype of
+                            Nothing -> throwError $ "function " ++ name ++ " not in scope"
+                            Just (FnType paramTypes retType) -> do
+                                case length exprs `compare` length paramTypes of
+                                    LT -> throwError $ "function " ++ name ++ " applied to too few arguments"
+                                    EQ -> return ()
+                                    GT -> throwError $ "function " ++ name ++ " applied to too many arguments"
+                                forM (zip3 [1..] paramTypes exprs) $ \(i, paramType, expr) -> do
+                                    exprType <- typecheck expr
+                                    when (paramType /= exprType) $ throwError $ "function " ++ name ++
+                                                                    " given incorrect " ++ show i ++ " argument"
+                                -- else, type of all parameters and arguments agree
+                                return retType
+                            Just _ -> throwError $ "type error: " ++ name ++ " is not a function"
+        EString string -> return Str
         Cond expr block -> do
             conditionTypecheck expr "if"
             typecheck block
@@ -292,6 +323,12 @@ instance ProgramNode Expr where
             return Void
         BStmt block -> typecheck block
         -- Closure args expr -> failure x
+        EStrConcat e1 e2 -> do
+            t1 <- typecheck e1
+            t2 <- typecheck e2
+            case (t1, t2) of
+                (Str, Str) -> return Str
+                _ -> throwError "type error: trying to concatenate two non-strings"
         Neg expr -> do
             t <- typecheck expr
             if t == Int
